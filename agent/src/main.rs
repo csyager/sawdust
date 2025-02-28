@@ -1,16 +1,56 @@
 use std::net::TcpListener;
 use std::io::{self, prelude::*, BufReader};
-use serde::Deserialize;
-use reqwest::StatusCode;
-use reqwest::blocking::Client;
-use std::collections::HashMap;
 use std::{env, fs};
 use std::process;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use std::sync::Arc;
 use thiserror::Error;
+use serde::{Deserialize, Serialize};
 
+mod registration;
+
+// command line parameters
+struct Config {
+    endpoint: String,
+    workflow_id: String,
+    workflow_token: String,
+    certificate_path: String,
+    listener_port: String
+}
+
+impl Config {
+    fn build(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 5 {
+            return Err("Not enough arguments.");
+        }
+        let endpoint = args[1].clone();
+        let workflow_id = args[2].clone();
+        let workflow_token = args[3].clone();
+        let certificate_path = args[4].clone();
+        let listener_port = args[5].clone();
+
+        Ok(Config {endpoint, workflow_id, workflow_token, certificate_path, listener_port})
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Activity {
+    activity_id: String,
+    workflow_name: String,
+    workflow_state: String,
+    incomplete_state: Option<String>
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PushActivityRequest {
+    compute_id: String,
+    activity: Activity
+}
+
+// error types
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("IO error")]
@@ -56,60 +96,9 @@ fn read_http_request<R: std::io::Read>(reader: &mut BufReader<R>) -> Result<(Str
     Ok((headers, body))
 }
 
-#[derive(Debug, Deserialize)]
-struct RegisterResponse {
-    #[serde(rename = "computeId")]
-    compute_id: String,
-    #[serde(rename = "workflowName")]
-    workflow_name: String
-}
-
-fn register_with_control_plane(cp_endpoint: &str, workflow_id: &str, workflow_token: &str, certificate_string: &str) -> Result<String, Error> {
-    let client = Client::new();
-    let mut map = HashMap::new();
-    map.insert("workflowId", workflow_id);
-    map.insert("workflowToken", workflow_token);
-    map.insert("certificate", certificate_string);
-    let res = client.post(format!("{cp_endpoint}/register/compute"))
-        .json(&map)
-        .send()?;
-    match res.status() {
-        StatusCode::CREATED => {
-            let body = res.json::<RegisterResponse>()?;
-            println!("Successfully registered with sawdust control plane.  Compute ID = {}", body.compute_id);
-            Ok(body.compute_id)
-        },
-        s => {
-            Err(Error::RegistrationError(s.to_string()))
-        }
-    }
-
-}
-
-struct Config {
-    endpoint: String,
-    workflow_id: String,
-    workflow_token: String,
-    certificate_path: String,
-    listener_port: String
-}
-
-impl Config {
-    fn build(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 5 {
-            return Err("Not enough arguments.");
-        }
-        let endpoint = args[1].clone();
-        let workflow_id = args[2].clone();
-        let workflow_token = args[3].clone();
-        let certificate_path = args[4].clone();
-        let listener_port = args[5].clone();
-
-        Ok(Config {endpoint, workflow_id, workflow_token, certificate_path, listener_port})
-    }
-}
 
 fn get_certificate_string(path: &str) -> Result<String, std::io::Error>{
+    println!("path: {}", path);
     let message: String = fs::read_to_string(path)?;
     Ok(message)
 }
@@ -170,10 +159,12 @@ fn main() {
     });
 
     // register with control plane
-    let compute_id = register_with_control_plane(&config.endpoint, &config.workflow_id, &config.workflow_token, &certificate_string).unwrap_or_else(|err| {
+    // TODO:  we should ensure that incoming requests use the correct compute ID
+    let compute_id = registration::register_with_control_plane(&config.endpoint, &config.workflow_id, &config.workflow_token, &certificate_string).unwrap_or_else(|err| {
         eprintln!("Register request failed: {}", err);
         process::exit(1);
     });
+    println!("compute_id = {}", compute_id);
 
     // start listener
     let listener = TcpListener::bind(format!("127.0.0.1:{}", &config.listener_port)).unwrap_or_else(|err| {
@@ -195,8 +186,22 @@ fn main() {
                         println!("Received headers:\n{}", headers);
                         if let Some(body) = body {
                             println!("Received body:\n{}", body);
+                            let pushActivityRequest: PushActivityRequest = serde_json::from_str(&body).expect("JSON was not well-formatted");
+
                         } else {
                             println!("No body received");
+                        }
+                        
+                        let response = "HTTP/1.1 200 OK\r\n\
+                            Content-Type: text/plain\r\n\
+                            Content-Length: 2\r\n\
+                            Connection: close\r\n\
+                            \r\n\
+                            OK";
+
+                        match tls_stream.write_all(response.as_bytes()) {
+                            Ok(_) => println!("Successfully sent {} bytes to control plane.", response.len()),
+                            Err(e) => eprintln!("Failed to send response: {}", e)
                         }
                     },
                     Err(e) => eprintln!("Error reading request: {}", e),

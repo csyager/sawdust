@@ -13,6 +13,7 @@ aws dynamodb delete-table \
   --table-name activities-table \
   --endpoint http://localhost:8000;
 
+# recreate tables
 aws dynamodb create-table \
   --table-name workflows-table \
   --attribute-definitions AttributeName=workflowId,AttributeType=S \
@@ -30,18 +31,18 @@ aws dynamodb create-table \
 aws dynamodb create-table \
   --table-name activities-table \
   --attribute-definitions AttributeName=activityId,AttributeType=S AttributeName=incompleteState,AttributeType=S \
-  --key-schema AttributeName=computeId,KeyType=HASH \
+  --key-schema AttributeName=activityId,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
   --endpoint http://localhost:8000 \
   --global-secondary-indexes \
-          "[
+          '[
               {
-                  \"IndexName\": \"IncompleteActivityIndex\",
-                  \"KeySchema\": [
-                      {\"AttributeName\":\"incompleteState\",\"KeyType\":\"HASH\"},
+                  "IndexName": "IncompleteActivityIndex",
+                  "KeySchema": [
+                      {"AttributeName": "incompleteState", "KeyType": "HASH"}
                   ],
-                  \"Projection\": {
-                      \"ProjectionType\":\"ALL\"
+                  "Projection": {
+                      "ProjectionType":"ALL"
                   }
               }
-          ]";
+          ]';
