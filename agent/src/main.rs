@@ -40,7 +40,7 @@ struct Activity {
     activity_id: String,
     workflow_name: String,
     workflow_state: String,
-    incomplete_state: Option<String>
+
 }
 
 #[derive(Serialize, Deserialize)]
