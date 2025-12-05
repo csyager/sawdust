@@ -1,4 +1,4 @@
-package com.sawdust.controller.workflows.model;
+package com.sawdust.controller.activities.model;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -8,9 +8,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
-public class CreateWorkflowRequest {
+public class CreateActivityRequest {
     @NotNull
-    String workflowId;
+    private String workflowId;
 
-    String initialActivityState;
+    private String activityState;
 }

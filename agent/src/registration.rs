@@ -9,7 +9,7 @@ use thiserror::Error;
 struct RegisterResponse {
     #[serde(rename = "computeId")]
     compute_id: String,
-    #[serde(rename = "workflowName")]
+    #[serde(rename = "workflowId")]
     workflow_name: String
 }
 

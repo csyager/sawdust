@@ -5,8 +5,6 @@ import com.sawdust.controller.workflows.model.dto.WorkflowDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
-import software.amazon.awssdk.services.secretsmanager.model.CreateSecretResponse;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -21,10 +19,7 @@ public class WorkflowsService {
     @Autowired
     private WorkflowsRepository workflowsRepository;
 
-    @Autowired
-    private SecretsManagerClient secretsManagerClient;
-
-    public CreateWorkflowResponse createWorkflow(String workflowId) throws NoSuchAlgorithmException {
+    public CreateWorkflowResponse createWorkflow(String workflowId, String initialActivityState) throws NoSuchAlgorithmException {
         log.info("Received workflow creation request.");
         final SecureRandom secureRandom;
         try {
@@ -46,6 +41,7 @@ public class WorkflowsService {
         workflowsRepository.createWorkflow(WorkflowDTO.builder()
                 .workflowId(workflowId)
                 .secret(stringHash)
+                .initialActivityState(initialActivityState)
                 .build()
         );
 

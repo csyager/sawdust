@@ -38,7 +38,7 @@ public class WorkflowsController {
         log.info("Received workflow creation request.");
 
         return new ResponseEntity<>(
-                workflowService.createWorkflow(request.getWorkflowId()),
+                workflowService.createWorkflow(request.getWorkflowId(), request.getInitialActivityState()),
                 HttpStatus.CREATED
         );
     }

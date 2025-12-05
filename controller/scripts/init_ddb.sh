@@ -22,11 +22,23 @@ aws dynamodb create-table \
   --endpoint http://localhost:8000;
 
 aws dynamodb create-table \
-  --table-name  compute-registrations-table \
-  --attribute-definitions AttributeName=computeId,AttributeType=S \
+  --table-name compute-registrations-table \
+  --attribute-definitions AttributeName=computeId,AttributeType=S AttributeName=workflowId,AttributeType=S \
   --key-schema AttributeName=computeId,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
-  --endpoint http://localhost:8000;
+  --endpoint http://localhost:8000 \
+  --global-secondary-indexes \
+          '[
+              {
+                  "IndexName": "WorkflowIndex",
+                  "KeySchema": [
+                      {"AttributeName": "workflowId", "KeyType": "HASH"}
+                  ],
+                  "Projection": {
+                      "ProjectionType":"ALL"
+                  }
+              }
+          ]';
 
 aws dynamodb create-table \
   --table-name activities-table \

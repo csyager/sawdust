@@ -9,6 +9,7 @@ use std::io;
 
 mod registration;
 mod activity;
+mod worker_proxy;
 
 // command line parameters
 struct Config {

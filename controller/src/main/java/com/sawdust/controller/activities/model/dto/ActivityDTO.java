@@ -27,7 +27,7 @@ public class ActivityDTO {
     String activityId;
 
     @NonNull
-    String workflowName;
+    String workflowId;
 
     @NonNull
     WorkflowState workflowState;
@@ -37,4 +37,6 @@ public class ActivityDTO {
     }))
     @JsonIgnore
     WorkflowState incompleteState;
+
+    String activityState;
 }

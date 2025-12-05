@@ -21,4 +21,7 @@ public class WorkflowDTO {
 
     @NonNull
     String secret;
+
+    @NonNull
+    String initialActivityState;
 }

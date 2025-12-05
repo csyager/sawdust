@@ -1,5 +1,6 @@
 package com.sawdust.controller.registration;
 
+import com.sawdust.controller.clients.SignatureVerifier;
 import com.sawdust.controller.registration.exceptions.InvalidWorkflowTokenException;
 import com.sawdust.controller.registration.model.dto.ComputeRegistrationDTO;
 import com.sawdust.controller.workflows.WorkflowsRepository;
@@ -19,23 +20,26 @@ public class RegistrationService {
     @Autowired
     private WorkflowsRepository workflowsRepository;
 
+
     public ComputeRegistrationDTO registerCompute(
-            final String workflowName,
+            final String workflowId,
             final String workflowToken,
             final String certificate
     ) throws NoSuchAlgorithmException {
-        WorkflowDTO workflow = workflowsRepository.getWorkflow(workflowName);
+        WorkflowDTO workflow = workflowsRepository.getWorkflow(workflowId);
 
-        // validate token
+        // validate bootstrap token
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
         messageDigest.update(workflowToken.getBytes());
         String stringHash = new String(messageDigest.digest());
 
-        if (stringHash.equals(workflow.getSecret())) {
-            // register compute in db
-            return computeRegistrationRepository.createComputeRegistration(workflowName, certificate);
-        } else {
+        if (!stringHash.equals(workflow.getSecret())) {
             throw new InvalidWorkflowTokenException("Invalid workflow token.");
         }
+
+        // TODO: verify worker certificate
+
+        // register compute in db
+        return computeRegistrationRepository.createComputeRegistration(workflowId, certificate);
     }
 }

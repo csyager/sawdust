@@ -42,7 +42,7 @@ Once an agent is registered and running, the control plane should periodically p
     "computeId": "string",
     "activity": {
         "activityId": "string",
-        "workflowName": "string",
+        "workflowId": "string",
         "workflowState": "string"
     }
 }

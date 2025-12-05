@@ -42,4 +42,15 @@ public class ActivityRepository {
             return queryResults.iterator().next().items();
         }
     }
+
+    public void putActivity(@NonNull final ActivityDTO activityDTO) {
+        table.putItem(activityDTO);
+    }
+
+    public ActivityDTO getActivity(@NonNull final String activityId) {
+        return table.getItem(Key.builder()
+                .partitionValue(activityId)
+                .build());
+
+    }
 }
